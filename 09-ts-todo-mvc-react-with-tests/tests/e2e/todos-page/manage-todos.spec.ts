@@ -1,6 +1,6 @@
 import { todosEndpoint, getUserEndpoint, pageUrl } from '../../../src/consts/urls';
 
-function authorize() {
+function authorize(fixture: string) {
   cy.intercept(
     'GET',
     getUserEndpoint,
@@ -10,7 +10,7 @@ function authorize() {
   cy.intercept(
     'GET',
     todosEndpoint,
-    { fixture: 'empty-todos-list.response.json' }
+      { fixture: fixture }
   ).as('initialTodos');
 
   cy.visit(pageUrl)
@@ -40,7 +40,7 @@ describe('Manage Todos', () => {
 
       const itemText = Math.random().toString() + '_' + Date.now();
 
-      authorize();
+      authorize('empty-todos-list.response.json');
       cy.get('[data-test-id=create-new-todo-form]').should('be.visible');
       cy.get('[data-test-id=create-new-todo-form__todo-text-input]').type(itemText);
       cy.get('[data-test-id=create-new-todo-form]').submit();
@@ -54,5 +54,33 @@ describe('Manage Todos', () => {
       cy.get('[data-test-id=todo-item__text-input]').should('have.value', itemText);
       cy.get('[data-test-id=todo-item__remove-action]').should('be.visible');
     });
+  });
+});
+
+
+context('Deletion', () => {
+  it('Delete single todo', () => {
+    cy.fixture('todos-list.response.json').then((todoItem) => {
+      let id = todoItem[0]['id'];
+      cy.intercept(
+          'DELETE',
+          todosEndpoint,
+          req => {
+            const {body} = req;
+            expect(body.id).to.equal(id);
+            req.reply();
+          }
+      ).as('deleteTodo');
+    });
+
+    authorize('todos-list.response.json');
+
+    cy.get('[data-test-id=create-new-todo-form]').should('be.visible');
+    cy.get('[data-test-id=todo-item]').should('be.visible');
+    cy.get('[data-test-id=todo-item__remove-action]').should('be.visible');
+
+    cy.get('[data-test-id=todo-item__remove-action]').click({ force: true });
+
+    cy.get('[data-test-id=todo-item]').should('not.exist');
   });
 });
