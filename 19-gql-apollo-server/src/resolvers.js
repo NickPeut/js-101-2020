@@ -56,7 +56,7 @@ const resolvers = {
         throw new Error("The book not found");
       }
       books[ind].title = title;
-      return books[ind].title;
+      return books[ind];
     }
   }
 };
